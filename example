@@ -1,4 +1,4 @@
-loadstring(game:HttpGet(""))().new({
+loadstring(game:HttpGet("https://raw.githubusercontent.com/vioo10952-ctrl/KeysysLua/refs/heads/main/Keysys.lua"))().new({
     keys = {"keykey", "femboytoes", "yourmum"},
     script = [[
         loadstring(game:HttpGet("https://raw.githubusercontent.com/vioo10952-ctrl/KeysysLua/refs/heads/main/supertuff.lua"))()
