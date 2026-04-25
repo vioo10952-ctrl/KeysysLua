@@ -1,0 +1,8 @@
+loadstring(game:HttpGet(""))().new({
+    keys = {"keykey", "femboytoes", "yourmum"},
+    script = [[
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/vioo10952-ctrl/KeysysLua/refs/heads/main/supertuff.lua"))()
+    ]],
+    name = "Tuffer",
+    discord_link = "https://discord.gg/femboy"
+}):start()
