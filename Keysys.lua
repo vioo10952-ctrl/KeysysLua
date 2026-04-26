@@ -257,7 +257,7 @@ function KeySystem.new(config)
         submitBtn.Parent = mainFrame
         mainFrame.Parent = screenGui
         
-        return keyInput, statusLabel, submitBtn, discordButton, screenGui, mainFrame
+        return keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame
     end
     
     local function verifyAndLoad(key)
@@ -294,6 +294,8 @@ function KeySystem.new(config)
     end
     
     local function fadeOutAndDestroy(screenGui, mainFrame)
+        if not screenGui or not mainFrame then return end
+        
         for i = 0, 10 do
             wait(0.03)
             local transparency = i / 10
@@ -315,15 +317,24 @@ function KeySystem.new(config)
             end
         end
         
-        screenGui:Destroy()
+        pcall(function()
+            screenGui:Destroy()
+        end)
     end
     
     local function start()
-        local keyInput, statusLabel, submitBtn, discordButton, screenGui, mainFrame = createUI()
+        local keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame = createUI()
         local uiDestroyed = false
+        local isProcessing = false
+        
+        local function cleanupUI()
+            if uiDestroyed then return end
+            uiDestroyed = true
+            fadeOutAndDestroy(screenGui, mainFrame)
+        end
         
         local function onSubmit()
-            if uiDestroyed then return end
+            if uiDestroyed or isProcessing then return end
             
             local enteredKey = keyInput.Text
             if enteredKey == "" then
@@ -332,8 +343,12 @@ function KeySystem.new(config)
                 return
             end
             
+            isProcessing = true
             statusLabel.Text = "Verifying key..."
             statusLabel.TextColor3 = Color3.fromRGB(0, 100, 200)
+            submitBtn.Text = "VERIFYING..."
+            submitBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+            submitBtn.AutoButtonColor = false
             
             wait(0.3)
             
@@ -342,12 +357,10 @@ function KeySystem.new(config)
             
             if success then
                 statusLabel.TextColor3 = Color3.fromRGB(0, 150, 0)
-                uiDestroyed = true
-                fadeOutAndDestroy(screenGui, mainFrame)
+                cleanupUI()
             else
                 statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
                 keyInput.Text = ""
-                keyInput:CaptureFocus()
                 
                 local originalPos = mainFrame.Position
                 for i = 1, 3 do
@@ -360,7 +373,12 @@ function KeySystem.new(config)
                 end
                 mainFrame.Position = originalPos
                 
-                wait(1)
+                submitBtn.Text = "UNLOCK " .. settings.script_name:upper()
+                submitBtn.BackgroundColor3 = settings.ui_settings.accent_color
+                submitBtn.AutoButtonColor = true
+                isProcessing = false
+                
+                wait(1.5)
                 if not uiDestroyed then
                     statusLabel.Text = "Waiting for key..."
                     statusLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -371,16 +389,13 @@ function KeySystem.new(config)
         submitBtn.MouseButton1Click:Connect(onSubmit)
         
         keyInput.FocusLost:Connect(function(enterPressed)
-            if enterPressed then
+            if enterPressed and not uiDestroyed and not isProcessing then
                 onSubmit()
             end
         end)
         
         closeBtn.MouseButton1Click:Connect(function()
-            if not uiDestroyed then
-                uiDestroyed = true
-                fadeOutAndDestroy(screenGui, mainFrame)
-            end
+            cleanupUI()
         end)
     end
     
