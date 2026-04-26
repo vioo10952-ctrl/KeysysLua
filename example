@@ -1,8 +1,9 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/vioo10952-ctrl/KeysysLua/refs/heads/main/Keysys.lua"))().new({
     keys = {"keykey", "femboytoes", "yourmum"},
     script = [[
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/vioo10952-ctrl/KeysysLua/refs/heads/main/supertuff.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     ]],
     name = "Tuffer",
-    discord_link = "https://discord.gg/femboy"
+    discord_link = "https://discord.gg/https://discord.gg/S2VaNG2vd",
+    require_captcha = true  -- set to false if you wanna disable the captcha keysystem
 }):start()
