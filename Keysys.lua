@@ -8,10 +8,10 @@ function KeySystem.new(config)
         protected_script = config.script or [[print("No script provided")]],
         script_name = config.name or "Protected Script",
         discord_link = config.discord_link or "https://discord.gg/example",
-        require_captcha = config.require_captcha ~= false, -- Default true, set to false to disable
+        require_captcha = config.require_captcha ~= false,
         ui_settings = {
             width = config.width or 400,
-            height = config.height or 470, -- Increased height for CAPTCHA
+            height = config.height or 470,
             bg_color = config.bg_color or Color3.fromRGB(255, 255, 255),
             accent_color = config.accent_color or Color3.fromRGB(0, 120, 255)
         }
@@ -154,8 +154,8 @@ function KeySystem.new(config)
             captchaInput.Text = ""
             captchaStatus.Text = ""
             captchaVerified = false
-            
-            -- Add visual noise to CAPTCHA
+            captchaFrame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
+            captchaFrame.BorderColor3 = Color3.fromRGB(220, 220, 220)
             captchaText.TextColor3 = Color3.fromRGB(math.random(0, 100), math.random(0, 100), math.random(0, 100))
         end
         
@@ -179,7 +179,6 @@ function KeySystem.new(config)
                 captchaFrame.BackgroundColor3 = Color3.fromRGB(255, 230, 230)
                 captchaFrame.BorderColor3 = Color3.fromRGB(255, 0, 0)
                 
-                -- Shake effect for wrong CAPTCHA
                 local originalPos = captchaFrame.Position
                 for i = 1, 3 do
                     captchaFrame.Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset + 5, originalPos.Y.Scale, originalPos.Y.Offset)
@@ -191,6 +190,10 @@ function KeySystem.new(config)
                 
                 return false
             end
+        end
+        
+        local function isCaptchaVerified()
+            return captchaVerified
         end
         
         local keyInput = Instance.new("TextBox")
@@ -429,7 +432,7 @@ function KeySystem.new(config)
         end)
         
         return keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame, 
-               (settings.require_captcha and {captchaVerified = function() return captchaVerified end, verifyCaptcha = verifyCaptcha} or nil)
+               {isVerified = isCaptchaVerified, verify = verifyCaptcha}
     end
     
     local function verifyAndLoad(key)
@@ -508,18 +511,19 @@ function KeySystem.new(config)
         local function onSubmit()
             if uiDestroyed or isProcessing then return end
             
-            -- Check CAPTCHA first
+            -- Check CAPTCHA if required
             if settings.require_captcha and captchaControls then
-                if not captchaControls.captchaVerified() then
-                    local verified = captchaControls.verifyCaptcha()
-                    if not verified then
-                        statusLabel.Text = "Please complete the CAPTCHA first!"
-                        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-                        wait(1.5)
+                -- First verify the CAPTCHA
+                local verified = captchaControls.verify()
+                if not verified then
+                    statusLabel.Text = "Please enter the correct CAPTCHA code!"
+                    statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    wait(1.5)
+                    if not uiDestroyed then
                         statusLabel.Text = "Waiting for key..."
                         statusLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
-                        return
                     end
+                    return
                 end
             end
             
@@ -549,6 +553,7 @@ function KeySystem.new(config)
                 statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
                 keyInput.Text = ""
                 
+                -- Shake effect
                 local originalPos = mainFrame.Position
                 for i = 1, 3 do
                     mainFrame.Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset + 8,
