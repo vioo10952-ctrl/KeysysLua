@@ -8,13 +8,24 @@ function KeySystem.new(config)
         protected_script = config.script or [[print("No script provided")]],
         script_name = config.name or "Protected Script",
         discord_link = config.discord_link or "https://discord.gg/example",
+        require_captcha = config.require_captcha ~= false, -- Default true, set to false to disable
         ui_settings = {
             width = config.width or 400,
-            height = config.height or 420,
+            height = config.height or 470, -- Increased height for CAPTCHA
             bg_color = config.bg_color or Color3.fromRGB(255, 255, 255),
             accent_color = config.accent_color or Color3.fromRGB(0, 120, 255)
         }
     }
+    
+    local function generateCaptcha()
+        local chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+        local captcha = ""
+        for i = 1, 6 do
+            local rand = math.random(1, #chars)
+            captcha = captcha .. string.sub(chars, rand, rand)
+        end
+        return captcha
+    end
     
     local function createUI()
         local screenGui = Instance.new("ScreenGui")
@@ -55,24 +66,141 @@ function KeySystem.new(config)
         closeBtn.BorderSizePixel = 0
         
         local lockIcon = Instance.new("ImageLabel")
-        lockIcon.Size = UDim2.new(0, 80, 0, 80)
-        lockIcon.Position = UDim2.new(0.5, -40, 0.06, 0)
+        lockIcon.Size = UDim2.new(0, 60, 0, 60)
+        lockIcon.Position = UDim2.new(0.5, -30, 0.04, 0)
         lockIcon.BackgroundTransparency = 1
         lockIcon.Image = "rbxassetid://5513462875"
         lockIcon.ImageColor3 = Color3.fromRGB(0, 0, 0)
         
         local instructionLabel = Instance.new("TextLabel")
-        instructionLabel.Size = UDim2.new(0.8, 0, 0, 40)
-        instructionLabel.Position = UDim2.new(0.1, 0, 0.26, 0)
+        instructionLabel.Size = UDim2.new(0.8, 0, 0, 30)
+        instructionLabel.Position = UDim2.new(0.1, 0, 0.16, 0)
         instructionLabel.BackgroundTransparency = 1
         instructionLabel.Text = "Enter your license key to unlock " .. settings.script_name
         instructionLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
-        instructionLabel.TextSize = 14
+        instructionLabel.TextSize = 13
         instructionLabel.Font = Enum.Font.Gotham
         
+        -- CAPTCHA Section
+        local captchaFrame = Instance.new("Frame")
+        captchaFrame.Size = UDim2.new(0.9, 0, 0, 80)
+        captchaFrame.Position = UDim2.new(0.05, 0, 0.24, 0)
+        captchaFrame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
+        captchaFrame.BorderSizePixel = 1
+        captchaFrame.BorderColor3 = Color3.fromRGB(220, 220, 220)
+        captchaFrame.Visible = settings.require_captcha
+        
+        local captchaLabel = Instance.new("TextLabel")
+        captchaLabel.Size = UDim2.new(1, 0, 0, 25)
+        captchaLabel.Position = UDim2.new(0, 0, 0, 0)
+        captchaLabel.BackgroundTransparency = 1
+        captchaLabel.Text = "Verify you're human:"
+        captchaLabel.TextColor3 = Color3.fromRGB(60, 60, 60)
+        captchaLabel.TextSize = 12
+        captchaLabel.Font = Enum.Font.Gotham
+        captchaLabel.TextXAlignment = Enum.TextXAlignment.Left
+        captchaLabel.Parent = captchaFrame
+        
+        local captchaText = Instance.new("TextLabel")
+        captchaText.Size = UDim2.new(0.6, 0, 0, 35)
+        captchaText.Position = UDim2.new(0.05, 0, 0.35, 0)
+        captchaText.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        captchaText.BackgroundTransparency = 0.1
+        captchaText.Text = ""
+        captchaText.TextColor3 = Color3.fromRGB(0, 0, 0)
+        captchaText.TextSize = 20
+        captchaText.Font = Enum.Font.GothamBold
+        captchaText.TextScaled = true
+        
+        local captchaInput = Instance.new("TextBox")
+        captchaInput.Size = UDim2.new(0.28, 0, 0, 35)
+        captchaInput.Position = UDim2.new(0.67, 0, 0.35, 0)
+        captchaInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        captchaInput.BorderColor3 = Color3.fromRGB(200, 200, 200)
+        captchaInput.BorderSizePixel = 1
+        captchaInput.PlaceholderText = "Enter code"
+        captchaInput.Text = ""
+        captchaInput.TextColor3 = Color3.fromRGB(0, 0, 0)
+        captchaInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+        captchaInput.TextSize = 14
+        captchaInput.Font = Enum.Font.Gotham
+        
+        local refreshCaptchaBtn = Instance.new("TextButton")
+        refreshCaptchaBtn.Size = UDim2.new(0, 30, 0, 30)
+        refreshCaptchaBtn.Position = UDim2.new(0.92, 0, 0.38, 0)
+        refreshCaptchaBtn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+        refreshCaptchaBtn.Text = "↻"
+        refreshCaptchaBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+        refreshCaptchaBtn.TextSize = 20
+        refreshCaptchaBtn.Font = Enum.Font.GothamBold
+        refreshCaptchaBtn.BorderSizePixel = 0
+        
+        local captchaStatus = Instance.new("TextLabel")
+        captchaStatus.Size = UDim2.new(1, 0, 0, 15)
+        captchaStatus.Position = UDim2.new(0, 0, 0.8, 0)
+        captchaStatus.BackgroundTransparency = 1
+        captchaStatus.Text = ""
+        captchaStatus.TextColor3 = Color3.fromRGB(255, 0, 0)
+        captchaStatus.TextSize = 10
+        captchaStatus.Font = Enum.Font.Gotham
+        captchaStatus.Parent = captchaFrame
+        
+        local currentCaptcha = ""
+        local captchaVerified = false
+        
+        local function refreshCaptcha()
+            currentCaptcha = generateCaptcha()
+            captchaText.Text = currentCaptcha
+            captchaInput.Text = ""
+            captchaStatus.Text = ""
+            captchaVerified = false
+            
+            -- Add visual noise to CAPTCHA
+            captchaText.TextColor3 = Color3.fromRGB(math.random(0, 100), math.random(0, 100), math.random(0, 100))
+        end
+        
+        local function verifyCaptcha()
+            if not settings.require_captcha then
+                captchaVerified = true
+                return true
+            end
+            
+            if string.upper(captchaInput.Text) == string.upper(currentCaptcha) then
+                captchaVerified = true
+                captchaStatus.Text = "✓ Verified!"
+                captchaStatus.TextColor3 = Color3.fromRGB(0, 150, 0)
+                captchaFrame.BackgroundColor3 = Color3.fromRGB(230, 255, 230)
+                captchaFrame.BorderColor3 = Color3.fromRGB(0, 200, 0)
+                return true
+            else
+                captchaVerified = false
+                captchaStatus.Text = "✗ Incorrect code"
+                captchaStatus.TextColor3 = Color3.fromRGB(255, 0, 0)
+                captchaFrame.BackgroundColor3 = Color3.fromRGB(255, 230, 230)
+                captchaFrame.BorderColor3 = Color3.fromRGB(255, 0, 0)
+                
+                -- Shake effect for wrong CAPTCHA
+                local originalPos = captchaFrame.Position
+                for i = 1, 3 do
+                    captchaFrame.Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset + 5, originalPos.Y.Scale, originalPos.Y.Offset)
+                    wait(0.05)
+                    captchaFrame.Position = UDim2.new(originalPos.X.Scale, originalPos.X.Offset - 5, originalPos.Y.Scale, originalPos.Y.Offset)
+                    wait(0.05)
+                end
+                captchaFrame.Position = originalPos
+                
+                return false
+            end
+        end
+        
         local keyInput = Instance.new("TextBox")
-        keyInput.Size = UDim2.new(0.8, 0, 0, 45)
-        keyInput.Position = UDim2.new(0.1, 0, 0.4, 0)
+        if settings.require_captcha then
+            keyInput.Size = UDim2.new(0.8, 0, 0, 45)
+            keyInput.Position = UDim2.new(0.1, 0, 0.47, 0)
+        else
+            keyInput.Size = UDim2.new(0.8, 0, 0, 45)
+            keyInput.Position = UDim2.new(0.1, 0, 0.35, 0)
+        end
         keyInput.BackgroundColor3 = Color3.fromRGB(250, 250, 250)
         keyInput.BorderColor3 = Color3.fromRGB(200, 200, 200)
         keyInput.BorderSizePixel = 1
@@ -84,8 +212,13 @@ function KeySystem.new(config)
         keyInput.Font = Enum.Font.Gotham
         
         local statusLabel = Instance.new("TextLabel")
-        statusLabel.Size = UDim2.new(0.8, 0, 0, 40)
-        statusLabel.Position = UDim2.new(0.1, 0, 0.56, 0)
+        if settings.require_captcha then
+            statusLabel.Size = UDim2.new(0.8, 0, 0, 30)
+            statusLabel.Position = UDim2.new(0.1, 0, 0.6, 0)
+        else
+            statusLabel.Size = UDim2.new(0.8, 0, 0, 40)
+            statusLabel.Position = UDim2.new(0.1, 0, 0.5, 0)
+        end
         statusLabel.BackgroundTransparency = 1
         statusLabel.Text = "Waiting for key..."
         statusLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
@@ -93,14 +226,34 @@ function KeySystem.new(config)
         statusLabel.Font = Enum.Font.Gotham
         
         local discordButton = Instance.new("TextButton")
-        discordButton.Size = UDim2.new(0.8, 0, 0, 35)
-        discordButton.Position = UDim2.new(0.1, 0, 0.69, 0)
+        if settings.require_captcha then
+            discordButton.Size = UDim2.new(0.8, 0, 0, 35)
+            discordButton.Position = UDim2.new(0.1, 0, 0.68, 0)
+        else
+            discordButton.Size = UDim2.new(0.8, 0, 0, 35)
+            discordButton.Position = UDim2.new(0.1, 0, 0.65, 0)
+        end
         discordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
         discordButton.Text = "GET YOUR KEY HERE"
         discordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         discordButton.TextSize = 13
         discordButton.Font = Enum.Font.GothamBold
         discordButton.BorderSizePixel = 0
+        
+        local submitBtn = Instance.new("TextButton")
+        if settings.require_captcha then
+            submitBtn.Size = UDim2.new(0.6, 0, 0, 45)
+            submitBtn.Position = UDim2.new(0.2, 0, 0.78, 0)
+        else
+            submitBtn.Size = UDim2.new(0.6, 0, 0, 45)
+            submitBtn.Position = UDim2.new(0.2, 0, 0.78, 0)
+        end
+        submitBtn.BackgroundColor3 = settings.ui_settings.accent_color
+        submitBtn.Text = "UNLOCK " .. settings.script_name:upper()
+        submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        submitBtn.TextSize = 14
+        submitBtn.Font = Enum.Font.GothamBold
+        submitBtn.BorderSizePixel = 0
         
         local function copyToClipboard(text)
             local success = pcall(function()
@@ -121,7 +274,7 @@ function KeySystem.new(config)
         local function showCopyNotification()
             local notification = Instance.new("Frame")
             notification.Size = UDim2.new(0, 200, 0, 30)
-            notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+            notification.Position = UDim2.new(0.5, -100, 0.85, 0)
             notification.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             notification.BackgroundTransparency = 0.2
             notification.BorderSizePixel = 0
@@ -145,82 +298,53 @@ function KeySystem.new(config)
             notification:Destroy()
         end
         
-        discordButton.MouseEnter:Connect(function()
-            discordButton.BackgroundColor3 = Color3.fromRGB(108, 121, 252)
-        end)
+        -- Assemble UI
+        captchaText.Parent = captchaFrame
+        captchaInput.Parent = captchaFrame
+        refreshCaptchaBtn.Parent = captchaFrame
+        captchaLabel.Parent = captchaFrame
         
-        discordButton.MouseLeave:Connect(function()
-            discordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-        end)
+        titleBar.Parent = mainFrame
+        title.Parent = titleBar
+        closeBtn.Parent = titleBar
+        lockIcon.Parent = mainFrame
+        instructionLabel.Parent = mainFrame
         
-        discordButton.MouseButton1Click:Connect(function()
-            local success = copyToClipboard(settings.discord_link)
+        if settings.require_captcha then
+            captchaFrame.Parent = mainFrame
+        end
+        
+        keyInput.Parent = mainFrame
+        statusLabel.Parent = mainFrame
+        discordButton.Parent = mainFrame
+        submitBtn.Parent = mainFrame
+        mainFrame.Parent = screenGui
+        
+        -- Set up CAPTCHA events
+        if settings.require_captcha then
+            refreshCaptcha()
             
-            if success then
-                showCopyNotification()
-                
-                pcall(function()
-                    if syn and syn.request then
-                        syn.request({
-                            Url = settings.discord_link,
-                            Method = "GET"
-                        })
-                    end
-                end)
-            else
-                local failNotif = Instance.new("Frame")
-                failNotif.Size = UDim2.new(0, 250, 0, 40)
-                failNotif.Position = UDim2.new(0.5, -125, 0.8, 0)
-                failNotif.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-                failNotif.BackgroundTransparency = 0.2
-                failNotif.BorderSizePixel = 0
-                failNotif.Parent = mainFrame
-                
-                local failText = Instance.new("TextLabel")
-                failText.Size = UDim2.new(1, 0, 1, 0)
-                failText.BackgroundTransparency = 1
-                failText.Text = "Copy manually: " .. settings.discord_link
-                failText.TextColor3 = Color3.fromRGB(255, 255, 255)
-                failText.TextSize = 10
-                failText.Font = Enum.Font.Gotham
-                failText.Parent = failNotif
-                
-                game:GetService("Debris"):AddItem(failNotif, 3)
-                for i = 1, 15 do
-                    wait(0.1)
-                    failNotif.BackgroundTransparency = 0.2 + (i / 15)
-                    failText.TextTransparency = i / 15
+            refreshCaptchaBtn.MouseButton1Click:Connect(function()
+                refreshCaptcha()
+            end)
+            
+            captchaInput.FocusLost:Connect(function(enterPressed)
+                if enterPressed then
+                    verifyCaptcha()
                 end
-                failNotif:Destroy()
-            end
-        end)
+            end)
+            
+            captchaInput.Changed:Connect(function()
+                if captchaVerified then
+                    captchaVerified = false
+                    captchaFrame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
+                    captchaFrame.BorderColor3 = Color3.fromRGB(220, 220, 220)
+                    captchaStatus.Text = ""
+                end
+            end)
+        end
         
-        local submitBtn = Instance.new("TextButton")
-        submitBtn.Size = UDim2.new(0.6, 0, 0, 45)
-        submitBtn.Position = UDim2.new(0.2, 0, 0.82, 0)
-        submitBtn.BackgroundColor3 = settings.ui_settings.accent_color
-        submitBtn.Text = "UNLOCK " .. settings.script_name:upper()
-        submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        submitBtn.TextSize = 14
-        submitBtn.Font = Enum.Font.GothamBold
-        submitBtn.BorderSizePixel = 0
-        
-        submitBtn.MouseEnter:Connect(function()
-            submitBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 220)
-        end)
-        
-        submitBtn.MouseLeave:Connect(function()
-            submitBtn.BackgroundColor3 = settings.ui_settings.accent_color
-        end)
-        
-        closeBtn.MouseEnter:Connect(function()
-            closeBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-        end)
-        
-        closeBtn.MouseLeave:Connect(function()
-            closeBtn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-        end)
-        
+        -- Dragging functionality
         local dragging = false
         local dragStart = nil
         local startPos = nil
@@ -246,18 +370,66 @@ function KeySystem.new(config)
             end
         end)
         
-        titleBar.Parent = mainFrame
-        title.Parent = titleBar
-        closeBtn.Parent = titleBar
-        lockIcon.Parent = mainFrame
-        instructionLabel.Parent = mainFrame
-        keyInput.Parent = mainFrame
-        statusLabel.Parent = mainFrame
-        discordButton.Parent = mainFrame
-        submitBtn.Parent = mainFrame
-        mainFrame.Parent = screenGui
+        -- Discord button functionality
+        discordButton.MouseEnter:Connect(function()
+            discordButton.BackgroundColor3 = Color3.fromRGB(108, 121, 252)
+        end)
         
-        return keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame
+        discordButton.MouseLeave:Connect(function()
+            discordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+        end)
+        
+        discordButton.MouseButton1Click:Connect(function()
+            local success = copyToClipboard(settings.discord_link)
+            
+            if success then
+                showCopyNotification()
+            else
+                local failNotif = Instance.new("Frame")
+                failNotif.Size = UDim2.new(0, 250, 0, 40)
+                failNotif.Position = UDim2.new(0.5, -125, 0.85, 0)
+                failNotif.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+                failNotif.BackgroundTransparency = 0.2
+                failNotif.BorderSizePixel = 0
+                failNotif.Parent = mainFrame
+                
+                local failText = Instance.new("TextLabel")
+                failText.Size = UDim2.new(1, 0, 1, 0)
+                failText.BackgroundTransparency = 1
+                failText.Text = "Copy manually: " .. settings.discord_link
+                failText.TextColor3 = Color3.fromRGB(255, 255, 255)
+                failText.TextSize = 10
+                failText.Font = Enum.Font.Gotham
+                failText.Parent = failNotif
+                
+                game:GetService("Debris"):AddItem(failNotif, 3)
+                for i = 1, 15 do
+                    wait(0.1)
+                    failNotif.BackgroundTransparency = 0.2 + (i / 15)
+                    failText.TextTransparency = i / 15
+                end
+                failNotif:Destroy()
+            end
+        end)
+        
+        submitBtn.MouseEnter:Connect(function()
+            submitBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 220)
+        end)
+        
+        submitBtn.MouseLeave:Connect(function()
+            submitBtn.BackgroundColor3 = settings.ui_settings.accent_color
+        end)
+        
+        closeBtn.MouseEnter:Connect(function()
+            closeBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+        end)
+        
+        closeBtn.MouseLeave:Connect(function()
+            closeBtn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+        end)
+        
+        return keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame, 
+               (settings.require_captcha and {captchaVerified = function() return captchaVerified end, verifyCaptcha = verifyCaptcha} or nil)
     end
     
     local function verifyAndLoad(key)
@@ -323,7 +495,7 @@ function KeySystem.new(config)
     end
     
     local function start()
-        local keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame = createUI()
+        local keyInput, statusLabel, submitBtn, closeBtn, discordButton, screenGui, mainFrame, captchaControls = createUI()
         local uiDestroyed = false
         local isProcessing = false
         
@@ -335,6 +507,21 @@ function KeySystem.new(config)
         
         local function onSubmit()
             if uiDestroyed or isProcessing then return end
+            
+            -- Check CAPTCHA first
+            if settings.require_captcha and captchaControls then
+                if not captchaControls.captchaVerified() then
+                    local verified = captchaControls.verifyCaptcha()
+                    if not verified then
+                        statusLabel.Text = "Please complete the CAPTCHA first!"
+                        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                        wait(1.5)
+                        statusLabel.Text = "Waiting for key..."
+                        statusLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+                        return
+                    end
+                end
+            end
             
             local enteredKey = keyInput.Text
             if enteredKey == "" then
